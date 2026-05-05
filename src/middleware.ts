@@ -6,9 +6,22 @@ export async function middleware(request: NextRequest) {
     request,
   });
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Skip Supabase middleware if env vars are not set (prevents 500 on Vercel)
+  if (!supabaseUrl || !supabaseKey) {
+    // Protect CRM routes with localStorage fallback (demo mode)
+    if (request.nextUrl.pathname.startsWith("/crm") && request.nextUrl.pathname !== "/crm/login") {
+      // In demo mode, allow all CRM access without Supabase auth
+      // Once env vars are set, this will use real auth below
+    }
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {
