@@ -27,9 +27,38 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "BimmerNext | BMW & MINI Specialists in Ajman",
+  title: "BimmerNext | BMW, MINI & Rolls-Royce Specialists in Ajman",
   description:
-    "Ajman's most trusted BMW, MINI and Rolls-Royce specialists. Dealer-level diagnostics, real expertise, no guesswork.",
+    "Ajman's most trusted BMW, MINI and Rolls-Royce specialists. Dealer-level diagnostics, real expertise, no guesswork. Book your inspection now.",
+  icons: {
+    icon: "/faviconbimmer.png",
+    shortcut: "/faviconbimmer.png",
+    apple: "/faviconbimmer.png",
+  },
+  openGraph: {
+    title: "BimmerNext | BMW, MINI & Rolls-Royce Specialists in Ajman",
+    description:
+      "Ajman's most trusted BMW, MINI and Rolls-Royce specialists. Dealer-level diagnostics, real expertise, no guesswork.",
+    url: "https://bimmernext.ae",
+    siteName: "BimmerNext",
+    images: [
+      {
+        url: "/herologo.png",
+        width: 1200,
+        height: 630,
+        alt: "BimmerNext - BMW & MINI Specialists",
+      },
+    ],
+    locale: "en_AE",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BimmerNext | BMW, MINI & Rolls-Royce Specialists in Ajman",
+    description:
+      "Ajman's most trusted BMW, MINI and Rolls-Royce specialists. Dealer-level diagnostics, real expertise, no guesswork.",
+    images: ["/herologo.png"],
+  },
 };
 
 export default function RootLayout({
