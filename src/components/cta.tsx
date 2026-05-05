@@ -4,7 +4,7 @@ export default function CTA() {
   return (
     <section className="relative bg-black-main text-white overflow-hidden">
       {/* Desktop: original side-by-side layout */}
-      <div className="hidden md:grid max-w-[1200px] mx-auto pl-6 pr-0 md:pr-2 grid-cols-2 gap-8 items-center min-h-[280px]">
+      <div className="hidden md:grid max-w-[1200px] mx-auto pl-6 pr-0 md:pr-2 grid-cols-2 gap-8 items-center h-[280px]">
         {/* Left: Text */}
         <div className="py-8 -ml-4">
           <h2
