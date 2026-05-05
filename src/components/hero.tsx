@@ -92,7 +92,7 @@ export default function Hero() {
               BOOK INSPECTION <ArrowRight size={16} />
             </a>
             <a
-              href="https://wa.me/971501234567"
+              href="https://wa.me/971523842422"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-lg font-ui font-semibold text-sm uppercase tracking-wider transition-all duration-300 hover:bg-black hover:-translate-y-0.5"

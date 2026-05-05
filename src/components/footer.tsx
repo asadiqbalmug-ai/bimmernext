@@ -48,13 +48,15 @@ export default function Footer() {
           <h4 className="font-ui font-semibold text-xs md:text-sm mb-3 md:mb-4 tracking-wider">CONTACT US</h4>
           <ul className="space-y-2 md:space-y-3">
             <li className="flex items-center gap-2 text-muted-custom text-xs md:text-sm">
-              <Phone size={12} className="text-cyan md:w-[14px] md:h-[14px]" /> +971 50 123 4567
+              <Phone size={12} className="text-cyan md:w-[14px] md:h-[14px]" /> 052 384 2422
             </li>
             <li className="flex items-center gap-2 text-muted-custom text-xs md:text-sm">
               <Mail size={12} className="text-cyan md:w-[14px] md:h-[14px]" /> info@bimmernext.ae
             </li>
             <li className="flex items-start gap-2 text-muted-custom text-xs md:text-sm">
+              <a href="https://maps.app.goo.gl/CsQEQvC21EebCrHM9?g_st=aw" target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 text-muted-custom hover:text-cyan transition-colors">
               <MapPin size={12} className="text-cyan mt-0.5 md:w-[14px] md:h-[14px]" /> Ajman, UAE
+            </a>
             </li>
           </ul>
         </div>
@@ -64,10 +66,10 @@ export default function Footer() {
           <h4 className="font-ui font-semibold text-xs md:text-sm mb-3 md:mb-4 tracking-wider">WORKING HOURS</h4>
           <ul className="space-y-1.5 md:space-y-2 text-muted-custom text-xs md:text-sm">
             <li className="flex items-center gap-2">
-              <Clock size={12} className="text-cyan md:w-[14px] md:h-[14px]" /> Mon - Sat
+              <Clock size={12} className="text-cyan md:w-[14px] md:h-[14px]" /> Mon–Thu, Sat–Sun
             </li>
-            <li>9:00 AM - 7:00 PM</li>
-            <li>Sunday: Closed</li>
+            <li>9 AM – 2 PM, 4–10 PM</li>
+            <li className="text-red-400 font-semibold">Friday: Closed</li>
           </ul>
           <div className="flex gap-2 md:gap-3 mt-3 md:mt-4">
             <a href="#" className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-black-main/10 flex items-center justify-center hover:bg-cyan transition-colors">

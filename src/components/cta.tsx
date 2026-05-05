@@ -30,7 +30,7 @@ export default function CTA() {
               BOOK INSPECTION <ArrowRight size={16} />
             </a>
             <a
-              href="https://wa.me/971501234567"
+              href="https://wa.me/971523842422"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 border border-cyan text-cyan px-5 md:px-6 py-3 rounded-lg font-ui font-bold text-sm transition-all duration-300 hover:bg-cyan/10"

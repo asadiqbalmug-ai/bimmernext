@@ -66,7 +66,7 @@ export default function ContactPage() {
                       value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
                       className="w-full bg-white border border-black-main/10 rounded-xl px-4 py-3 text-sm text-black-main focus:outline-none focus:border-cyan transition-colors"
-                      placeholder="+971 50 123 4567"
+                      placeholder="052 384 2422"
                     />
                   </div>
                 </div>
@@ -135,16 +135,16 @@ export default function ContactPage() {
                 </p>
                 <div className="space-y-4">
                   <a
-                    href="tel:+971501234567"
+                    href="tel:+971523842422"
                     className="flex items-center gap-3 text-black-main hover:text-cyan transition-colors"
                   >
                     <span className="w-10 h-10 rounded-full bg-cyan/10 flex items-center justify-center">
                       <Phone size={18} className="text-cyan" />
                     </span>
-                    <span className="text-sm font-semibold">+971 50 123 4567</span>
+                    <span className="text-sm font-semibold">052 384 2422</span>
                   </a>
                   <a
-                    href="https://wa.me/971501234567"
+                    href="https://wa.me/971523842422"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 text-black-main hover:text-cyan transition-colors"
@@ -171,20 +171,25 @@ export default function ContactPage() {
                   Workshop Location
                 </p>
                 <div className="space-y-4">
-                  <div className="flex items-start gap-3 text-black-main">
+                  <a
+                    href="https://maps.app.goo.gl/CsQEQvC21EebCrHM9?g_st=aw"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-3 text-black-main hover:text-cyan transition-colors"
+                  >
                     <span className="w-10 h-10 rounded-full bg-cyan/10 flex items-center justify-center shrink-0">
                       <MapPin size={18} className="text-cyan" />
                     </span>
                     <span className="text-sm">Ajman, UAE</span>
-                  </div>
+                  </a>
                   <div className="flex items-start gap-3 text-black-main">
                     <span className="w-10 h-10 rounded-full bg-cyan/10 flex items-center justify-center shrink-0">
                       <Clock size={18} className="text-cyan" />
                     </span>
                     <div className="text-sm">
-                      <p>Monday - Saturday</p>
-                      <p className="font-semibold">9:00 AM - 7:00 PM</p>
-                      <p className="text-muted-custom mt-1">Sunday: Closed</p>
+                      <p>Mon – Thu, Sat – Sun</p>
+                      <p className="font-semibold">9 AM – 2 PM, 4 – 10 PM</p>
+                      <p className="text-red-500 font-semibold mt-1">Friday: Closed</p>
                     </div>
                   </div>
                 </div>
