@@ -72,9 +72,9 @@ export default function Footer() {
             <li className="text-red-400 font-semibold">Friday: Closed</li>
           </ul>
           <div className="flex gap-2 md:gap-3 mt-3 md:mt-4">
-            <a href="/" className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-black-main/10 flex items-center justify-center hover:bg-cyan transition-colors">
+            <Link href="/" className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-black-main/10 flex items-center justify-center hover:bg-cyan transition-colors">
               <Globe size={12} className="md:w-[14px] md:h-[14px]" />
-            </a>
+            </Link>
             <a href="https://wa.me/971523842422" target="_blank" rel="noopener noreferrer" className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-black-main/10 flex items-center justify-center hover:bg-cyan transition-colors">
               <MessageCircle size={12} className="md:w-[14px] md:h-[14px]" />
             </a>
