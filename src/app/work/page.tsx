@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Our Work",
+  description: "See our portfolio of BMW, MINI & Rolls-Royce repairs, restorations, and diagnostics at BimmerNext Ajman.",
+  keywords: ["BMW repair portfolio", "car restoration UAE", "BimmerNext work", "BMW projects Ajman"],
+  alternates: {
+    canonical: "https://bimmernext.ae/work",
+  },
+};
 
 const projects = [
   {

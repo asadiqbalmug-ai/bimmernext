@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import { ArrowRight, Users, ShieldCheck, Wrench, Star } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "About Us",
+  description: "Learn about BimmerNext - Ajman's premier BMW, MINI & Rolls-Royce specialists. Our story, expertise, and commitment to dealer-level car repair.",
+  keywords: ["about BimmerNext", "BMW specialist Ajman", "car workshop team UAE", "European car experts"],
+  alternates: {
+    canonical: "https://bimmernext.ae/about",
+  },
+};
 
 const values = [
   {

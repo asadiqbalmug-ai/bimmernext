@@ -27,14 +27,53 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "BimmerNext | BMW, MINI & Rolls-Royce Specialists in Ajman",
+  metadataBase: new URL("https://bimmernext.ae"),
+  title: {
+    default: "BimmerNext | BMW, MINI & Rolls-Royce Specialists in Ajman, UAE",
+    template: "%s | BimmerNext - UAE Car Workshop",
+  },
   description:
-    "Ajman's most trusted BMW, MINI and Rolls-Royce specialists. Dealer-level diagnostics, real expertise, no guesswork. Book your inspection now.",
+    "Premium BMW, MINI & Rolls-Royce car repair workshop in Ajman, UAE. Dealer-level diagnostics, expert mechanics, genuine parts. Book your car service, inspection, or maintenance today.",
+  keywords: [
+    "BMW repair Ajman",
+    "MINI service UAE",
+    "Rolls-Royce workshop Dubai",
+    "car repair Ajman",
+    "BMW specialist UAE",
+    "German car workshop",
+    "luxury car repair",
+    "car diagnostics UAE",
+    "auto repair Ajman",
+    "BMW maintenance",
+    "car garage Ajman",
+    "European car specialist",
+    "BMW mechanic",
+    "car service center",
+    "automotive repair UAE",
+  ],
+  authors: [{ name: "BimmerNext" }],
+  creator: "BimmerNext",
+  publisher: "BimmerNext",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: "/",
+  },
   icons: {
     icon: "/faviconbimmer.png",
     shortcut: "/faviconbimmer.png",
     apple: "/faviconbimmer.png",
   },
+  manifest: "/manifest.json",
   openGraph: {
     title: "BimmerNext | BMW, MINI & Rolls-Royce Specialists in Ajman",
     description:
@@ -46,7 +85,7 @@ export const metadata: Metadata = {
         url: "/herologo.png",
         width: 1200,
         height: 630,
-        alt: "BimmerNext - BMW & MINI Specialists",
+        alt: "BimmerNext - BMW & MINI Specialists in Ajman UAE",
       },
     ],
     locale: "en_AE",
@@ -58,7 +97,13 @@ export const metadata: Metadata = {
     description:
       "Ajman's most trusted BMW, MINI and Rolls-Royce specialists. Dealer-level diagnostics, real expertise, no guesswork.",
     images: ["/herologo.png"],
+    creator: "@bimmernext",
   },
+  verification: {
+    google: "YOUR_GOOGLE_VERIFICATION_CODE",
+  },
+  category: "Automotive",
+  classification: "Car Repair & Maintenance",
 };
 
 export default function RootLayout({
@@ -68,9 +113,17 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="en-AE"
+      dir="ltr"
       className={`${alfaSlabOne.variable} ${bebasNeue.variable} ${poppins.variable} h-full antialiased`}
     >
+      <head>
+        <meta name="geo.region" content="AE-AJ" />
+        <meta name="geo.placename" content="Ajman" />
+        <meta name="geo.position" content="25.4052;55.5136" />
+        <meta name="ICBM" content="25.4052, 55.5136" />
+        <meta name="apple-mobile-web-app-title" content="BimmerNext" />
+      </head>
       <body className="min-h-full flex flex-col bg-cream text-black-main">
         <Navbar />
         <main className="flex-1">{children}</main>

@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import { Check, ArrowRight, ShieldCheck, Award, Wrench, Clock, Users } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Why Us",
+  description: "Why choose BimmerNext for your BMW, MINI & Rolls-Royce in Ajman? Expert mechanics, genuine parts, dealer-level diagnostics.",
+  keywords: ["why choose BimmerNext", "BMW specialist Ajman", "best car workshop UAE", "European car expert"],
+  alternates: {
+    canonical: "https://bimmernext.ae/why-us",
+  },
+};
 
 const reasons = [
   {

@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import { Star, ArrowRight, MessageCircle } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Reviews",
+  description: "Read genuine customer reviews for BimmerNext - Ajman's trusted BMW, MINI & Rolls-Royce specialist workshop.",
+  keywords: ["BimmerNext reviews", "BMW workshop reviews Ajman", "car repair testimonials UAE", "BimmerNext customer feedback"],
+  alternates: {
+    canonical: "https://bimmernext.ae/reviews",
+  },
+};
 
 const testimonials = [
   {

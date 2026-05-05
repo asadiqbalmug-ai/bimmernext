@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import { Activity, Cog, Zap, CircleDot, ShieldCheck, ArrowRight, Check } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Services",
+  description: "Expert BMW, MINI & Rolls-Royce services in Ajman. Advanced diagnostics, engine repair, electrical & coding, suspension, and performance tuning.",
+  keywords: ["BMW repair", "MINI service Ajman", "Rolls-Royce maintenance", "car diagnostics UAE", "European car repair"],
+  alternates: {
+    canonical: "https://bimmernext.ae/services",
+  },
+};
 
 const services = [
   {
