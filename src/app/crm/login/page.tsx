@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Car, Shield, Eye, EyeOff } from "lucide-react";
 
 export default function CRMLoginPage() {
@@ -120,9 +121,9 @@ export default function CRMLoginPage() {
         </div>
 
         <div className="text-center mt-6">
-          <a href="/" className="text-sm text-white/30 hover:text-white/60 transition-colors">
+          <Link href="/" className="text-sm text-white/30 hover:text-white/60 transition-colors">
             ← Back to BimmerNext Website
-          </a>
+          </Link>
         </div>
       </div>
     </div>

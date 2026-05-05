@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Filter, Clock, CheckCircle2, AlertCircle, Wrench, Car, User, Tag } from "lucide-react";
+import { Plus, Search, Filter, Clock, CheckCircle2, AlertCircle, Wrench, Car, User } from "lucide-react";
 
 const jobs = [
   { id: "JO-2041", customer: "Ahmed R.", car: "BMW M4 2021", service: "Engine Rebuild", status: "In Progress", priority: "High", assigned: "Technician A", estCost: "AED 12,500", startDate: "May 1", dueDate: "May 8" },

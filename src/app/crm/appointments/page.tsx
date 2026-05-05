@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Calendar, Clock, Car, CheckCircle2, XCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Calendar, Clock, Car, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 
 const appointments = [
   { id: "AP-3051", customer: "Omar S.", car: "MINI Countryman 2021", service: "Oil Service", date: "May 5, 2026", time: "09:00", status: "Confirmed" },
