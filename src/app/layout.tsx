@@ -3,6 +3,7 @@ import { Alfa_Slab_One, Bebas_Neue, Poppins } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import FloatingWhatsAppWrapper from "@/components/floating-whatsapp-wrapper";
 
 const alfaSlabOne = Alfa_Slab_One({
   weight: "400",
@@ -45,6 +46,7 @@ export default function RootLayout({
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />
+        <FloatingWhatsAppWrapper />
       </body>
     </html>
   );

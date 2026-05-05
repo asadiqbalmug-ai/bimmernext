@@ -86,7 +86,7 @@ export default function Hero() {
           {/* CTAs */}
           <div className="flex flex-wrap gap-3 mb-5">
             <a
-              href="#contact"
+              href="/contact"
               className="inline-flex items-center gap-2 bg-cyan text-white px-6 py-3 rounded-lg font-ui font-semibold text-sm uppercase tracking-wider transition-all duration-300 hover:bg-blue hover:-translate-y-0.5"
             >
               BOOK INSPECTION <ArrowRight size={16} />
