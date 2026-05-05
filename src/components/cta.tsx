@@ -21,15 +21,15 @@ export default function CTA() {
         </div>
 
         {/* Right: Car Image + Buttons */}
-        <div className="relative h-full flex flex-row items-center justify-between gap-4">
-          <div className="flex-1 relative h-full">
+        <div className="relative h-full grid grid-cols-[1fr_auto] items-center gap-6">
+          <div className="relative h-full overflow-hidden flex items-center justify-end">
             <img
               src="/2d (1).JPG"
               alt="BMW Front"
-              className="absolute inset-0 w-full h-full object-contain object-right scale-[1.6]"
+              className="h-full w-auto object-contain object-right scale-125"
             />
           </div>
-          <div className="flex flex-col gap-3 mb-2 shrink-0 translate-x-16">
+          <div className="flex flex-col gap-3 pr-8">
             <a
               href="/contact"
               className="inline-flex items-center justify-center gap-2 bg-cyan text-black-main px-6 py-2.5 rounded-lg font-ui font-bold text-sm transition-all duration-300 hover:bg-[#01A5B1]"
