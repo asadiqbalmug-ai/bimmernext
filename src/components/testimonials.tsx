@@ -30,13 +30,13 @@ export default function Testimonials() {
         </h2>
 
         <div className="relative">
-          {/* Left arrow */}
-          <button className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 w-10 h-10 rounded-full border border-black-main/20 flex items-center justify-center text-black-main hover:bg-black-main hover:text-white transition-colors z-10">
+          {/* Left arrow - desktop only */}
+          <button className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 w-10 h-10 rounded-full border border-black-main/20 items-center justify-center text-black-main hover:bg-black-main hover:text-white transition-colors z-10">
             <ChevronLeft size={18} />
           </button>
 
           {/* Cards */}
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-4 md:gap-6">
             {testimonials.map((t) => (
               <div
                 key={t.name}
@@ -60,14 +60,14 @@ export default function Testimonials() {
             ))}
           </div>
 
-          {/* Right arrow */}
-          <button className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 w-10 h-10 rounded-full border border-black-main/20 flex items-center justify-center text-black-main hover:bg-black-main hover:text-white transition-colors z-10">
+          {/* Right arrow - desktop only */}
+          <button className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 w-10 h-10 rounded-full border border-black-main/20 items-center justify-center text-black-main hover:bg-black-main hover:text-white transition-colors z-10">
             <ChevronRight size={18} />
           </button>
         </div>
 
-        {/* Dots */}
-        <div className="flex items-center justify-center gap-2 mt-8">
+        {/* Dots - desktop only */}
+        <div className="hidden md:flex items-center justify-center gap-2 mt-8">
           <span className="w-2 h-2 rounded-full bg-cyan" />
           <span className="w-2 h-2 rounded-full bg-black-main/20" />
           <span className="w-2 h-2 rounded-full bg-black-main/20" />

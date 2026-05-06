@@ -39,19 +39,19 @@ export default function Expertise() {
             hands-on with every car. We don&apos;t just fix cars — we solve
             problems others couldn&apos;t.
           </p>
-          <ul className="space-y-3 mb-8">
+          <ul className="space-y-3 mb-8 pr-2">
             {bullets.map((b) => (
-              <li key={b} className="flex items-center gap-3 text-muted-custom">
-                <span className="w-5 h-5 rounded-full bg-cyan flex items-center justify-center shrink-0">
+              <li key={b} className="flex items-start gap-3 text-muted-custom">
+                <span className="w-5 h-5 rounded-full bg-cyan flex items-center justify-center shrink-0 mt-0.5">
                   <Check size={12} className="text-white" strokeWidth={3} />
                 </span>
-                {b}
+                <span className="leading-snug">{b}</span>
               </li>
             ))}
           </ul>
           <a
             href="/about"
-            className="inline-flex items-center justify-center gap-2 bg-cyan text-black-main px-7 py-3 rounded-xl font-ui font-semibold transition-all duration-300 hover:bg-blue hover:shadow-glow hover:-translate-y-1 w-1/2"
+            className="inline-flex items-center justify-center gap-2 bg-cyan text-black-main px-5 md:px-7 py-3 rounded-xl font-ui font-semibold transition-all duration-300 hover:bg-blue hover:shadow-glow hover:-translate-y-1 w-full md:w-1/2"
           >
             Learn More About Us <ArrowRight size={18} />
           </a>

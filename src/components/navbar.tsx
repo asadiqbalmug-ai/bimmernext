@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,17 +17,33 @@ const navLinks = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-cream border-b border-black-main/5">
-      <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between h-16 md:h-20">
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-gradient-to-b from-cream via-cream/95 to-transparent border-b border-transparent"
+          : "bg-cream border-b border-black-main/5"
+      }`}
+    >
+      <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between h-14 md:h-20">
         {/* Logo */}
         <Link href="/" className="flex items-center">
           <img
             src="/bnlogo__1_-removebg-preview.png"
             alt="BimmerNext"
-            className="h-10 md:h-12 w-auto object-contain"
+            className="h-9 md:h-12 w-auto object-contain"
           />
         </Link>
 
@@ -58,10 +74,10 @@ export default function Navbar() {
           </Link>
           <button
             onClick={() => setOpen(!open)}
-            className="lg:hidden text-black p-2"
+            className="lg:hidden text-black p-2 -mr-2"
             aria-label="Toggle menu"
           >
-            {open ? <X size={24} /> : <Menu size={24} />}
+            {open ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </div>
