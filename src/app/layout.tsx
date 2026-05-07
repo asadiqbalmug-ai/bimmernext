@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Alfa_Slab_One, Bebas_Neue, Poppins } from "next/font/google";
+import { Alfa_Slab_One, Bebas_Neue, Poppins, Rubik_Gemstones } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -22,6 +22,13 @@ const bebasNeue = Bebas_Neue({
 const poppins = Poppins({
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-poppins",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const rubikGemstones = Rubik_Gemstones({
+  weight: "400",
+  variable: "--font-rubik-gemstones",
   subsets: ["latin"],
   display: "swap",
 });
@@ -115,7 +122,7 @@ export default function RootLayout({
     <html
       lang="en-AE"
       dir="ltr"
-      className={`${alfaSlabOne.variable} ${bebasNeue.variable} ${poppins.variable} h-full antialiased`}
+      className={`${alfaSlabOne.variable} ${bebasNeue.variable} ${poppins.variable} ${rubikGemstones.variable} h-full antialiased`}
     >
       <head>
         <meta name="geo.region" content="AE-AJ" />

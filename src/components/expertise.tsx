@@ -26,11 +26,14 @@ export default function Expertise() {
         </div>
 
         {/* Right: Text content */}
-        <div className="py-20 md:py-28 px-6 md:px-12 lg:px-20 flex flex-col justify-center">
+        <div className="py-20 md:py-28 px-4 sm:px-6 md:px-12 lg:px-20 flex flex-col justify-center overflow-hidden">
           <p className="text-cyan font-ui text-sm font-semibold tracking-widest uppercase mb-3">
             Why Choose BimmerNext?
           </p>
-          <h2 className="text-4xl md:text-5xl mb-6 leading-tight">
+          <h2 
+            className="text-3xl md:text-5xl mb-6 leading-tight"
+            style={{ fontFamily: "var(--font-rubik-gemstones), fantasy, cursive" }}
+          >
             Expertise You Can Trust. <br />
             <span className="text-cyan">Results You Can Feel.</span>
           </h2>
@@ -39,13 +42,13 @@ export default function Expertise() {
             hands-on with every car. We don&apos;t just fix cars — we solve
             problems others couldn&apos;t.
           </p>
-          <ul className="space-y-3 mb-8 pr-2">
+          <ul className="space-y-3 mb-8 w-full">
             {bullets.map((b) => (
-              <li key={b} className="flex items-start gap-3 text-muted-custom">
+              <li key={b} className="flex items-start gap-3 text-muted-custom max-w-full">
                 <span className="w-5 h-5 rounded-full bg-cyan flex items-center justify-center shrink-0 mt-0.5">
                   <Check size={12} className="text-white" strokeWidth={3} />
                 </span>
-                <span className="leading-snug">{b}</span>
+                <span className="leading-snug break-words flex-1 min-w-0">{b}</span>
               </li>
             ))}
           </ul>

@@ -33,8 +33,8 @@ export default function Navbar() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-gradient-to-b from-cream via-cream/95 to-transparent border-b border-transparent"
-          : "bg-cream border-b border-black-main/5"
+          ? "bg-gradient-to-b from-cream via-cream/95 to-transparent"
+          : "bg-cream"
       }`}
     >
       <div className="max-w-[1200px] mx-auto px-6 flex items-center justify-between h-14 md:h-20">
@@ -84,7 +84,7 @@ export default function Navbar() {
 
       {/* Mobile Nav */}
       {open && (
-        <div className="lg:hidden bg-cream border-t border-black-main/5">
+        <div className="lg:hidden bg-cream">
           <div className="px-6 py-4 flex flex-col gap-4">
             {navLinks.map((link) => (
               <Link
