@@ -12,6 +12,7 @@ import {
   Car,
   Shield,
   ChevronRight,
+  FileText,
 } from "lucide-react";
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
   { label: "Customers", href: "/crm/customers", icon: Users },
   { label: "Appointments", href: "/crm/appointments", icon: Calendar },
   { label: "Service Jobs", href: "/crm/services", icon: Wrench },
+  { label: "Invoices", href: "/crm/invoices", icon: FileText },
 ];
 
 export default function CRMLayout({ children }: { children: React.ReactNode }) {
@@ -82,7 +84,7 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
         {/* Nav */}
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.href}
