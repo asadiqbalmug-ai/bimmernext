@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
+import PrintButton from "./print-button";
 
 export const metadata: Metadata = {
   title: "Invoice | BimmerNext",
   robots: { index: false, follow: false },
 };
+
+export function generateStaticParams() {
+  return [{ id: "5171" }];
+}
 
 const invoice = {
   number: "5171",
@@ -209,12 +214,7 @@ export default function InvoicePage() {
 
         {/* Print button — hidden in print */}
         <div className="print:hidden flex justify-center py-6 bg-[#F5EFE6]">
-          <button
-            onClick={() => window.print()}
-            className="bg-[#00C2C7] text-[#0A0A0A] px-8 py-3 rounded-xl font-bold text-sm tracking-widest uppercase hover:bg-[#0094FF] hover:text-white transition-all"
-          >
-            Print / Save as PDF
-          </button>
+          <PrintButton />
         </div>
       </div>
     </div>
