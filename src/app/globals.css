@@ -87,3 +87,14 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
+
+@media print {
+  @page {
+    margin: 0;
+    size: A4;
+  }
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
