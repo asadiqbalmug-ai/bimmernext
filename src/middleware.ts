@@ -46,6 +46,25 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Protect /admin routes
+  if (
+    request.nextUrl.pathname.startsWith("/admin") &&
+    request.nextUrl.pathname !== "/admin/login"
+  ) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // Redirect logged-in user away from /admin/login
+  if (request.nextUrl.pathname === "/admin/login" && user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/admin/dashboard";
+    return NextResponse.redirect(url);
+  }
+
   // Protect CRM routes
   if (request.nextUrl.pathname.startsWith("/crm") && request.nextUrl.pathname !== "/crm/login") {
     if (!user) {
