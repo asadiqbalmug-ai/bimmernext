@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Save, Loader2, Trash2, Plus, ChevronDown, ExternalLink } from "lucide-react";
+import { Save, Loader2, Trash2, Plus, ChevronDown } from "lucide-react";
 
-interface LineItem { id: string; desc: string; qty: string; unit: string; amount: number }
+interface JobRow { id: string; job: string; technician: string }
 interface StaffMember { id: string; full_name: string; role: string }
 
 const STATUS_OPTIONS = ["Open","In Progress","Waiting Parts","Ready","Completed","Cancelled"];
 const PRIORITY_OPTIONS = ["Low","Normal","High","Urgent"];
+const newJobRow = (): JobRow => ({ id: crypto.randomUUID(), job: "", technician: "" });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function JobDetailClient({ job, staff }: { job: any; staff: StaffMember[] }) {
@@ -17,77 +18,62 @@ export default function JobDetailClient({ job, staff }: { job: any; staff: Staff
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const parseItems = (): LineItem[] => {
+  const parseJobRows = (): JobRow[] => {
     try {
-      const raw = Array.isArray(job.items) ? job.items : JSON.parse(job.items || "[]");
-      return raw.map((i: Record<string, unknown>, idx: number) => ({
-        id: String(idx), desc: String(i.desc ?? ""), qty: String(i.qty ?? "1"),
-        unit: String(i.unit ?? ""), amount: Number(i.amount ?? 0),
+      const raw = Array.isArray(job.jobs_carried_out) ? job.jobs_carried_out : JSON.parse(job.jobs_carried_out || "[]");
+      const rows = raw.map((r: Record<string,unknown>, idx: number) => ({
+        id: String(idx), job: String(r.job ?? ""), technician: String(r.technician ?? ""),
       }));
-    } catch { return []; }
+      while (rows.length < 8) rows.push(newJobRow());
+      return rows;
+    } catch { return Array.from({ length: 8 }, newJobRow); }
   };
 
-  const [status, setStatus]     = useState<string>(job.status);
-  const [priority, setPriority] = useState<string>(job.priority);
-  const [assignedTo, setAT]     = useState<string>(job.assigned_to || "");
+  const [status, setStatus]   = useState<string>(job.status || "Open");
+  const [priority, setPriority] = useState<string>(job.priority || "Normal");
+  const [assignedTo, setAT]   = useState<string>(job.assigned_to || "");
 
-  const [customerName, setCN]   = useState(job.customer_name || "");
-  const [customerPhone, setCP]  = useState(job.customer_phone || "");
-  const [customerEmail, setCE]  = useState(job.customer_email || "");
+  const [date, setDate]       = useState(job.date_in || "");
+  const [orderNo, setOrderNo] = useState(job.order_no || "");
+  const [customerName, setCN] = useState(job.customer_name || "");
+  const [customerPhone, setCP] = useState(job.customer_phone || "");
+  const [make, setMake]       = useState(job.make || "");
+  const [model, setModel]     = useState(job.model || "");
+  const [vin, setVin]         = useState(job.vin || "");
+  const [registration, setReg] = useState(job.registration || "");
+  const [mileage, setMileage] = useState(job.mileage_in ? String(job.mileage_in) : "");
 
-  const [make, setMake]         = useState(job.make || "");
-  const [model, setModel]       = useState(job.model || "");
-  const [year, setYear]         = useState(job.year || "");
-  const [color, setColor]       = useState(job.color || "");
-  const [vin, setVin]           = useState(job.vin || "");
-  const [registration, setReg]  = useState(job.registration || "");
-  const [mileageIn, setMI]      = useState(job.mileage_in ? String(job.mileage_in) : "");
-  const [mileageOut, setMO]     = useState(job.mileage_out ? String(job.mileage_out) : "");
-  const [dateIn, setDateIn]     = useState(job.date_in || "");
-  const [est, setEst]           = useState(job.estimated_completion || "");
+  const [concerns, setConcerns]   = useState(job.customers_concerns || "");
+  const [findings, setFindings]   = useState(job.additional_findings || "");
+  const [suggestions, setSugg]    = useState(job.suggestions || "");
+  const [remarks, setRemarks]     = useState(job.remarks || "");
+  const [internalNotes, setNotes] = useState(job.internal_notes || "");
 
-  const [complaints, setCo]     = useState(job.customer_complaints || "");
-  const [diagnosis, setDi]      = useState(job.diagnosis || "");
-  const [workDone, setWD]       = useState(job.work_done || "");
-  const [notes, setNo]          = useState(job.notes || "");
+  const [jobRows, setJobRows] = useState<JobRow[]>(parseJobRows());
 
-  const [items, setItems]       = useState<LineItem[]>(parseItems().length ? parseItems() : [{ id: "0", desc: "", qty: "1", unit: "", amount: 0 }]);
-  const [labourCost, setLC]     = useState(job.labour_total ? String(job.labour_total) : "");
-
-  const newItem = (): LineItem => ({ id: crypto.randomUUID(), desc: "", qty: "1", unit: "", amount: 0 });
-
-  const updateItem = (id: string, key: keyof LineItem, val: string) =>
-    setItems((prev) => prev.map((it) => {
-      if (it.id !== id) return it;
-      const u = { ...it, [key]: val };
-      if (key === "qty" || key === "unit")
-        u.amount = Math.round((parseFloat(u.qty) || 0) * (parseFloat(u.unit) || 0) * 100) / 100;
-      return u;
-    }));
-
-  const partsTot  = items.reduce((s, i) => s + (i.amount || 0), 0);
-  const labourTot = parseFloat(labourCost) || 0;
-  const grandTot  = partsTot + labourTot;
+  const updateRow = (id: string, key: keyof JobRow, val: string) =>
+    setJobRows((p) => p.map((r) => r.id === id ? { ...r, [key]: val } : r));
 
   const handleSave = async () => {
     setSaving(true);
     const supabase = createClient();
     const selectedStaff = staff.find((s) => s.id === assignedTo);
+    const filledRows = jobRows.filter((r) => r.job.trim());
     const { error } = await supabase.from("job_cards").update({
       status, priority,
-      customer_name: customerName, customer_phone: customerPhone || null,
-      customer_email: customerEmail || null,
-      make: make || null, model: model || null, year: year || null, color: color || null,
+      order_no: orderNo || null,
+      customer_name: customerName,
+      customer_phone: customerPhone || null,
+      make: make || null, model: model || null,
       vin: vin || null, registration: registration || null,
-      mileage_in: mileageIn ? parseInt(mileageIn.replace(/,/g, "")) : null,
-      mileage_out: mileageOut ? parseInt(mileageOut.replace(/,/g, "")) : null,
-      date_in: dateIn || null, estimated_completion: est || null,
-      customer_complaints: complaints || null, diagnosis: diagnosis || null,
-      work_done: workDone || null, notes: notes || null,
-      items: items.filter((i) => i.desc).map((i) => ({
-        desc: i.desc, qty: i.qty, unit: parseFloat(i.unit) || 0, amount: i.amount,
-      })),
-      parts_total: partsTot, labour_total: labourTot, grand_total: grandTot,
+      mileage_in: mileage ? parseInt(mileage.replace(/[^0-9]/g, "")) || null : null,
+      date_in: date || null,
+      customers_concerns: concerns || null,
+      additional_findings: findings || null,
+      suggestions: suggestions || null,
+      remarks: remarks || null,
+      jobs_carried_out: filledRows.map((r) => ({ job: r.job, technician: r.technician })),
+      internal_notes: internalNotes || null,
       assigned_to: assignedTo || null,
       assigned_name: selectedStaff?.full_name || null,
     }).eq("id", job.id);
@@ -106,23 +92,90 @@ export default function JobDetailClient({ job, staff }: { job: any; staff: Staff
 
   return (
     <div className="space-y-5">
-      {/* PDF attachment */}
+      {/* Attachment badge */}
       {job.pdf_filename && (
-        <div className="bg-[#0A0A0A] rounded-2xl p-4 border border-white/5 flex items-center justify-between">
-          <div>
-            <p className="text-white/40 text-xs font-semibold tracking-widest uppercase mb-0.5">Attached PDF</p>
-            <p className="text-white text-sm font-semibold">{job.pdf_filename}</p>
+        <div className="bg-[#0A0A0A] rounded-xl px-4 py-3 border border-white/5 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#00C2C7]/10 flex items-center justify-center text-[#00C2C7] text-xs font-bold shrink-0">
+            {job.pdf_filename.split(".").pop()?.toUpperCase()}
           </div>
-          <ExternalLink size={16} className="text-white/30" />
+          <p className="text-white/60 text-sm">{job.pdf_filename}</p>
         </div>
       )}
 
-      {/* Status row */}
+      {/* ── Job Card body ── */}
+      <div className="bg-[#0A0A0A] rounded-2xl border border-white/5 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-white/[0.02]">
+          <p className="text-xs text-white/30 font-semibold tracking-widest uppercase">BimmerNext Auto Maintenance</p>
+          <p className="text-white font-bold text-sm tracking-widest">JOB CARD</p>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Row 1 */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <F label="Date" value={date} onChange={setDate} type="date" />
+            <F label="Make" value={make} onChange={setMake} placeholder="BMW" />
+            <F label="VIN" value={vin} onChange={setVin} />
+            <F label="Customer" value={customerName} onChange={setCN} />
+          </div>
+          {/* Row 2 */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <F label="Order No" value={orderNo} onChange={setOrderNo} />
+            <F label="Model" value={model} onChange={setModel} placeholder="E71" />
+            <F label="Registration" value={registration} onChange={setReg} />
+            <F label="Mileage" value={mileage} onChange={setMileage} />
+          </div>
+          {/* Phone */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <F label="Customer Phone" value={customerPhone} onChange={setCP} type="tel" />
+          </div>
+
+          <div className="border-t border-white/5" />
+
+          {/* Concerns + Findings */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="label-style">Customer&apos;s Concerns</label>
+              <textarea value={concerns} onChange={(e) => setConcerns(e.target.value)} rows={6} className="input-style w-full resize-y" />
+            </div>
+            <div>
+              <label className="label-style">Additional Findings</label>
+              <textarea value={findings} onChange={(e) => setFindings(e.target.value)} rows={6} className="input-style w-full resize-y" />
+            </div>
+          </div>
+          <F label="Suggestions" value={suggestions} onChange={setSugg} />
+
+          <div className="border-t border-white/5" />
+
+          {/* Jobs Carried Out */}
+          <div>
+            <p className="text-xs font-bold tracking-widest text-white/50 uppercase mb-3">Jobs Carried Out</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-1">
+              {jobRows.map((row) => (
+                <div key={row.id} className="flex gap-2 items-center group py-0.5">
+                  <input value={row.job} onChange={(e) => updateRow(row.id, "job", e.target.value)} placeholder="Job description" className="input-style flex-1 text-sm py-1.5 px-3 min-w-0" />
+                  <input value={row.technician} onChange={(e) => updateRow(row.id, "technician", e.target.value)} placeholder="Technician" className="input-style w-24 text-sm py-1.5 px-3 shrink-0" />
+                  <button type="button" onClick={() => setJobRows((p) => p.filter((r) => r.id !== row.id))} className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition-all shrink-0">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={() => setJobRows((p) => [...p, newJobRow()])} className="mt-3 flex items-center gap-2 text-[#00C2C7]/60 hover:text-[#00C2C7] text-xs font-semibold tracking-widest uppercase transition-colors">
+              <Plus size={13} /> Add Row
+            </button>
+          </div>
+
+          <div className="border-t border-white/5" />
+          <F label="Remarks" value={remarks} onChange={setRemarks} />
+        </div>
+      </div>
+
+      {/* Admin settings */}
       <div className="bg-[#0A0A0A] rounded-2xl p-5 border border-white/5">
-        <h2 className="text-xs font-bold tracking-widest text-[#00C2C7] uppercase mb-4">Status</h2>
+        <h2 className="text-xs font-bold tracking-widest text-[#00C2C7] uppercase mb-4">Admin Settings</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Select label="Status" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-          <Select label="Priority" value={priority} onChange={setPriority} options={PRIORITY_OPTIONS} />
+          <Sel label="Status" value={status} onChange={setStatus} options={STATUS_OPTIONS} />
+          <Sel label="Priority" value={priority} onChange={setPriority} options={PRIORITY_OPTIONS} />
           <div>
             <label className="label-style">Assigned To</label>
             <div className="relative">
@@ -134,123 +187,19 @@ export default function JobDetailClient({ job, staff }: { job: any; staff: Staff
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Customer */}
-      <div className="bg-[#0A0A0A] rounded-2xl p-5 border border-white/5">
-        <h2 className="text-xs font-bold tracking-widest text-[#00C2C7] uppercase mb-4">Customer</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <F label="Full Name *" value={customerName} onChange={setCN} />
-          <F label="Phone" value={customerPhone} onChange={setCP} type="tel" />
-          <F label="Email" value={customerEmail} onChange={setCE} type="email" />
+        <div className="mt-4">
+          <label className="label-style">Internal Notes</label>
+          <textarea value={internalNotes} onChange={(e) => setNotes(e.target.value)} rows={2} className="input-style w-full resize-y" />
         </div>
-      </div>
-
-      {/* Vehicle */}
-      <div className="bg-[#0A0A0A] rounded-2xl p-5 border border-white/5">
-        <h2 className="text-xs font-bold tracking-widest text-[#00C2C7] uppercase mb-4">Vehicle</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          <F label="Make"  value={make}  onChange={setMake}  />
-          <F label="Model" value={model} onChange={setModel} />
-          <F label="Year"  value={year}  onChange={setYear}  />
-          <F label="Color" value={color} onChange={setColor} />
-          <F label="VIN / Chassis" value={vin} onChange={setVin} className="sm:col-span-2" />
-          <F label="Registration" value={registration} onChange={setReg} />
-          <F label="Mileage In"   value={mileageIn}   onChange={setMI} />
-          <F label="Mileage Out"  value={mileageOut}  onChange={setMO} />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-          <F label="Date In" value={dateIn} onChange={setDateIn} type="date" />
-          <F label="Est. Completion" value={est} onChange={setEst} type="date" />
-        </div>
-      </div>
-
-      {/* Job Details */}
-      <div className="bg-[#0A0A0A] rounded-2xl p-5 border border-white/5">
-        <h2 className="text-xs font-bold tracking-widest text-[#00C2C7] uppercase mb-4">Job Details</h2>
-        <div className="space-y-4">
-          <TA label="Customer Complaints" value={complaints} onChange={setCo} />
-          <TA label="Diagnosis" value={diagnosis} onChange={setDi} />
-          <TA label="Work Done" value={workDone} onChange={setWD} />
-        </div>
-      </div>
-
-      {/* Parts & Services */}
-      <div className="bg-[#0A0A0A] rounded-2xl p-5 border border-white/5">
-        <h2 className="text-xs font-bold tracking-widest text-[#00C2C7] uppercase mb-4">Parts & Services</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[520px]">
-            <thead>
-              <tr className="border-b border-white/10 text-white/30 text-xs tracking-wider uppercase">
-                <th className="text-left pb-3 font-semibold">Description</th>
-                <th className="text-center pb-3 w-16 font-semibold">Qty</th>
-                <th className="text-center pb-3 w-24 font-semibold">Unit (AED)</th>
-                <th className="text-right pb-3 w-24 font-semibold">Amount</th>
-                <th className="w-8 pb-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {items.map((item) => (
-                <tr key={item.id} className="group">
-                  <td className="py-2 pr-2">
-                    <input value={item.desc} onChange={(e) => updateItem(item.id, "desc", e.target.value)} className="input-style w-full text-sm" placeholder="Description" />
-                  </td>
-                  <td className="py-2 px-1">
-                    <input value={item.qty} onChange={(e) => updateItem(item.id, "qty", e.target.value)} className="input-style w-full text-center text-sm" />
-                  </td>
-                  <td className="py-2 px-1">
-                    <input value={item.unit} onChange={(e) => updateItem(item.id, "unit", e.target.value)} className="input-style w-full text-center text-sm" placeholder="0" />
-                  </td>
-                  <td className="py-2 pl-1 text-right text-[#00C2C7] font-bold text-sm">
-                    {item.amount > 0 ? item.amount.toLocaleString() : "—"}
-                  </td>
-                  <td className="py-2 pl-1">
-                    <button type="button" onClick={() => setItems((p) => p.filter((i) => i.id !== item.id))} className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition-all">
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <button type="button" onClick={() => setItems((p) => [...p, newItem()])} className="mt-3 flex items-center gap-2 text-[#00C2C7]/60 hover:text-[#00C2C7] text-xs font-semibold tracking-widest uppercase transition-colors">
-          <Plus size={14} /> Add Item
-        </button>
-        <div className="mt-5 border-t border-white/5 pt-4 flex items-end justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <label className="label-style whitespace-nowrap">Labour (AED)</label>
-            <input value={labourCost} onChange={(e) => setLC(e.target.value)} placeholder="0" className="input-style w-28 text-center" />
-          </div>
-          <div className="text-right space-y-1">
-            <p className="text-white/40 text-xs">Parts: <span className="text-white font-bold">{partsTot.toLocaleString()} AED</span></p>
-            <p className="text-white/40 text-xs">Labour: <span className="text-white font-bold">{labourTot.toLocaleString()} AED</span></p>
-            <p className="text-[#00C2C7] font-black">Grand Total: {grandTot.toLocaleString()} AED</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Notes */}
-      <div className="bg-[#0A0A0A] rounded-2xl p-5 border border-white/5">
-        <h2 className="text-xs font-bold tracking-widest text-[#00C2C7] uppercase mb-4">Internal Notes</h2>
-        <TA label="" value={notes} onChange={setNo} rows={3} />
       </div>
 
       {/* Actions */}
       <div className="flex items-center justify-between pb-6">
-        <button
-          onClick={handleDelete}
-          disabled={deleting}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-red-400/60 hover:text-red-400 hover:bg-red-400/10 transition-all"
-        >
+        <button onClick={handleDelete} disabled={deleting} className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-red-400/60 hover:text-red-400 hover:bg-red-400/10 transition-all">
           {deleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
           Delete Job Card
         </button>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 bg-[#00C2C7] text-[#0A0A0A] px-7 py-3 rounded-xl font-bold text-sm tracking-widest uppercase hover:bg-[#0094FF] hover:text-white transition-all disabled:opacity-50"
-        >
+        <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-[#00C2C7] text-[#0A0A0A] px-7 py-3 rounded-xl font-bold text-sm tracking-widest uppercase hover:bg-[#0094FF] hover:text-white transition-all disabled:opacity-50">
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
           {saving ? "Saving…" : "Save Changes"}
         </button>
@@ -259,29 +208,15 @@ export default function JobDetailClient({ job, staff }: { job: any; staff: Staff
   );
 }
 
-function F({ label, value, onChange, type = "text", className = "" }: {
-  label: string; value: string; onChange: (v: string) => void; type?: string; className?: string;
-}) {
+function F({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
   return (
-    <div className={className}>
-      {label && <label className="label-style">{label}</label>}
+    <div>
+      <label className="label-style">{label}</label>
       <input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="input-style w-full" />
     </div>
   );
 }
-function TA({ label, value, onChange, rows = 4 }: {
-  label: string; value: string; onChange: (v: string) => void; rows?: number;
-}) {
-  return (
-    <div>
-      {label && <label className="label-style">{label}</label>}
-      <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} className="input-style w-full resize-y" />
-    </div>
-  );
-}
-function Select({ label, value, onChange, options }: {
-  label: string; value: string; onChange: (v: string) => void; options: string[];
-}) {
+function Sel({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
     <div>
       <label className="label-style">{label}</label>

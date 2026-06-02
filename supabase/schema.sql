@@ -178,16 +178,22 @@ CREATE TABLE IF NOT EXISTS job_cards (
   estimated_completion DATE,
   date_completed DATE,
 
-  -- ── Job detail ──
-  customer_complaints TEXT,
-  diagnosis TEXT,
-  work_done TEXT,
-  parts_notes TEXT,
+  -- ── Order reference (from physical card "Order No" field) ──
+  order_no TEXT,
 
-  -- ── Line items: [{desc, qty, unit, amount, type: 'part'|'labour'}] ──
+  -- ── Physical job card fields ──
+  customers_concerns   TEXT,    -- "Customer's Concerns" section
+  additional_findings  TEXT,    -- "Additional Findings" section
+  suggestions          TEXT,    -- "Suggestions" line
+  remarks              TEXT,    -- "Remarks" line
+
+  -- ── Jobs Carried Out: [{job: string, technician: string}] ──
+  jobs_carried_out JSONB DEFAULT '[]'::jsonb,
+
+  -- ── Invoice line items (populated when creating invoice): [{desc,qty,unit,amount}] ──
   items JSONB DEFAULT '[]'::jsonb,
 
-  -- ── Totals ──
+  -- ── Totals (set when invoice is created) ──
   parts_total DECIMAL(10,2) DEFAULT 0,
   labour_total DECIMAL(10,2) DEFAULT 0,
   grand_total DECIMAL(10,2) DEFAULT 0,
@@ -196,18 +202,27 @@ CREATE TABLE IF NOT EXISTS job_cards (
   assigned_to UUID REFERENCES profiles(id) ON DELETE SET NULL,
   assigned_name TEXT,
 
-  -- ── Attachments ──
+  -- ── Attachments (uploaded PDF or photo of job card) ──
   pdf_url TEXT,
   pdf_filename TEXT,
 
   -- ── Links ──
   invoice_id UUID,
 
-  notes TEXT,
+  internal_notes TEXT,
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ── Migration: run if table already exists with old schema ──
+-- ALTER TABLE job_cards ADD COLUMN IF NOT EXISTS order_no TEXT;
+-- ALTER TABLE job_cards ADD COLUMN IF NOT EXISTS customers_concerns TEXT;
+-- ALTER TABLE job_cards ADD COLUMN IF NOT EXISTS additional_findings TEXT;
+-- ALTER TABLE job_cards ADD COLUMN IF NOT EXISTS suggestions TEXT;
+-- ALTER TABLE job_cards ADD COLUMN IF NOT EXISTS remarks TEXT;
+-- ALTER TABLE job_cards ADD COLUMN IF NOT EXISTS jobs_carried_out JSONB DEFAULT '[]';
+-- ALTER TABLE job_cards ADD COLUMN IF NOT EXISTS internal_notes TEXT;
 ALTER TABLE job_cards ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "job_cards_all_auth" ON job_cards FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE TRIGGER update_job_cards_updated_at BEFORE UPDATE ON job_cards
