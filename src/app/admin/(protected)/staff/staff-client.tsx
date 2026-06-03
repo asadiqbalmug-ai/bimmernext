@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, Loader2, Shield, Trash2, ChevronDown, UserCheck, UserX } from "lucide-react";
+import { Plus, Loader2, Shield, ChevronDown, UserCheck, UserX } from "lucide-react";
 
 const ROLES = ["owner","admin","technician","receptionist","staff"];
 const ROLE_COLORS: Record<string, string> = {
@@ -43,8 +43,6 @@ export default function StaffClient({ staff }: { staff: StaffMember[] }) {
     }
     setSaving(true);
     setError("");
-    const supabase = createClient();
-
     // Create auth user via admin API (needs service role — use API route)
     const res = await fetch("/api/admin/create-staff", {
       method: "POST",

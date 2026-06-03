@@ -12,6 +12,7 @@ export function generateStaticParams() {
   return [{ id: "5171" }];
 }
 
-export default function InvoicePage({ params }: { params: { id: string } }) {
-  return <InvoiceView id={params.id} />;
+export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <InvoiceView id={id} />;
 }

@@ -43,7 +43,7 @@ async function pdfPageToBase64(file: File): Promise<string> {
   canvas.width = viewport.width;
   canvas.height = viewport.height;
   const ctx = canvas.getContext("2d")!;
-  await page.render({ canvasContext: ctx, viewport }).promise;
+  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
   return canvas.toDataURL("image/jpeg", 0.92).split(",")[1];
 }
 
@@ -60,7 +60,6 @@ export default function JobCardUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
@@ -192,7 +191,7 @@ export default function JobCardUploader({
       <button
         type="button"
         onClick={handleAIExtract}
-        disabled={ocrLoading || loading}
+        disabled={ocrLoading}
         className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#00C2C7] to-[#0094FF] text-[#0A0A0A] font-bold py-3 rounded-xl text-sm tracking-widest uppercase hover:opacity-90 transition-all disabled:opacity-50"
       >
         {ocrLoading ? (
