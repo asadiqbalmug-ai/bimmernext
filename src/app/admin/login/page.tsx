@@ -52,7 +52,7 @@ export default function AdminLoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="owner@bimmernext.ae"
+              placeholder="admin@bimmernext.ae"
               required
               className="w-full bg-white/5 border border-white/10 text-white placeholder:text-white/20 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#00C2C7]/60 transition-colors"
             />
