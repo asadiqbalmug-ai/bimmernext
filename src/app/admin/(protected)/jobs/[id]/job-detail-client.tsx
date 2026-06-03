@@ -208,11 +208,11 @@ export default function JobDetailClient({ job, staff }: { job: any; staff: Staff
   );
 }
 
-function F({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
+function F({ label, value, onChange, type = "text", placeholder }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string }) {
   return (
     <div>
       <label className="label-style">{label}</label>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} className="input-style w-full" />
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="input-style w-full" />
     </div>
   );
 }
