@@ -49,6 +49,7 @@ export async function POST(req: Request) {
   await adminClient.from("profiles").upsert({
     id: newUser.user.id,
     full_name: name,
+    email: email,
     role: role || "staff",
     phone: phone || null,
     is_active: true,

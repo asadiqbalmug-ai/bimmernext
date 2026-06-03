@@ -5,14 +5,15 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Trash2, Save, Loader2, ChevronDown } from "lucide-react";
 import JobCardUploader, { type ExtractedJobCard } from "./pdf-extractor";
+import { TechSelect } from "../tech-select";
 
-interface JobRow { id: string; job: string; technician: string }
+interface JobRow { id: string; job: string; technicians: string[] }
 interface StaffMember { id: string; full_name: string; role: string }
 
 const STATUS_OPTIONS = ["Open","In Progress","Waiting Parts","Ready","Completed","Cancelled"];
 const PRIORITY_OPTIONS = ["Low","Normal","High","Urgent"];
 
-const newJobRow = (): JobRow => ({ id: crypto.randomUUID(), job: "", technician: "" });
+const newJobRow = (): JobRow => ({ id: crypto.randomUUID(), job: "", technicians: [] });
 const INITIAL_ROWS = 8;
 
 export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
@@ -48,8 +49,10 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
     Array.from({ length: INITIAL_ROWS }, newJobRow)
   );
 
-  const updateRow = (id: string, key: keyof JobRow, val: string) =>
-    setJobRows((p) => p.map((r) => r.id === id ? { ...r, [key]: val } : r));
+  const updateJob = (id: string, val: string) =>
+    setJobRows((p) => p.map((r) => r.id === id ? { ...r, job: val } : r));
+  const updateTechs = (id: string, techs: string[]) =>
+    setJobRows((p) => p.map((r) => r.id === id ? { ...r, technicians: techs } : r));
 
   const handleExtracted = (data: ExtractedJobCard, file: File) => {
     setUploadedFile(file);
@@ -67,8 +70,11 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
     if (data.suggestions)         setSuggestions(data.suggestions);
     if (data.remarks)             setRemarks(data.remarks);
     if (data.jobs_carried_out?.length) {
-      const rows = data.jobs_carried_out.map((r) => ({ id: crypto.randomUUID(), job: r.job, technician: r.technician }));
-      // Pad to at least INITIAL_ROWS
+      const rows = data.jobs_carried_out.map((r) => ({
+        id: crypto.randomUUID(),
+        job: r.job,
+        technicians: r.technician ? [r.technician] : [],
+      }));
       while (rows.length < INITIAL_ROWS) rows.push(newJobRow());
       setJobRows(rows);
     }
@@ -107,7 +113,7 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
       additional_findings: findings.trim() || null,
       suggestions: suggestions.trim() || null,
       remarks: remarks.trim() || null,
-      jobs_carried_out: filledRows.map((r) => ({ job: r.job, technician: r.technician })),
+      jobs_carried_out: filledRows.map((r) => ({ job: r.job, technicians: r.technicians })),
       internal_notes: internalNotes.trim() || null,
       assigned_to: assignedTo || null,
       assigned_name: selectedStaff?.full_name || null,
@@ -199,23 +205,24 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
             <p className="text-xs font-bold tracking-widest text-white/50 uppercase mb-3">Jobs Carried Out</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-1">
               {jobRows.map((row) => (
-                <div key={row.id} className="flex gap-2 items-center group py-0.5">
+                <div key={row.id} className="flex gap-2 items-start group py-0.5">
                   <input
                     value={row.job}
-                    onChange={(e) => updateRow(row.id, "job", e.target.value)}
+                    onChange={(e) => updateJob(row.id, e.target.value)}
                     placeholder="Job description"
                     className="input-style flex-1 text-sm py-1.5 px-3 min-w-0"
                   />
-                  <input
-                    value={row.technician}
-                    onChange={(e) => updateRow(row.id, "technician", e.target.value)}
-                    placeholder="Technician"
-                    className="input-style w-24 text-sm py-1.5 px-3 shrink-0"
-                  />
+                  <div className="input-style w-36 shrink-0 py-1 px-2">
+                    <TechSelect
+                      selected={row.technicians}
+                      staff={staff}
+                      onChange={(techs) => updateTechs(row.id, techs)}
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => setJobRows((p) => p.filter((r) => r.id !== row.id))}
-                    className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition-all shrink-0"
+                    className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition-all shrink-0 mt-1"
                   >
                     <Trash2 size={13} />
                   </button>

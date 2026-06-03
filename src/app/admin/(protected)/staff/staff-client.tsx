@@ -16,7 +16,7 @@ const ROLE_COLORS: Record<string, string> = {
 
 interface StaffMember {
   id: string; full_name: string; role: string;
-  phone?: string; is_active: boolean; created_at: string;
+  phone?: string; email?: string; is_active: boolean; created_at: string;
 }
 
 export default function StaffClient({ staff }: { staff: StaffMember[] }) {
@@ -124,6 +124,12 @@ export default function StaffClient({ staff }: { staff: StaffMember[] }) {
         </div>
       )}
 
+      {/* Login hint */}
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#00C2C7]/5 border border-[#00C2C7]/15 text-[#00C2C7]/70 text-xs">
+        <Shield size={14} className="shrink-0" />
+        Staff log in at <span className="font-mono font-semibold text-[#00C2C7]">bimmernext.ae/admin</span> using their email and the password set here.
+      </div>
+
       {/* Staff list */}
       <div className="bg-[#0A0A0A] rounded-2xl border border-white/5 overflow-hidden">
         {staff.length === 0 ? (
@@ -148,7 +154,10 @@ export default function StaffClient({ staff }: { staff: StaffMember[] }) {
                         {member.role}
                       </span>
                     </div>
-                    <p className="text-xs text-white/30">{member.phone || "No phone"}</p>
+                    {member.email && (
+                      <p className="text-xs text-[#00C2C7]/60 font-mono mt-0.5">{member.email}</p>
+                    )}
+                    <p className="text-xs text-white/20">{member.phone || ""}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-3">

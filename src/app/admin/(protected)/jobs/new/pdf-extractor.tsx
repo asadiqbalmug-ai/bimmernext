@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Upload, Loader2, FileCheck, X, Sparkles, ImageIcon } from "lucide-react";
+import { Upload, Loader2, FileCheck, X, Sparkles, ImageIcon, Download } from "lucide-react";
 
 export interface ExtractedJobCard {
   date?: string;
@@ -60,6 +60,7 @@ export default function JobCardUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
@@ -71,9 +72,16 @@ export default function JobCardUploader({
     setFile(f);
     setMessage(null);
     onFileSelected?.(f);
+    const objUrl = URL.createObjectURL(f);
+    setDownloadUrl(objUrl);
 
     if (f.type.startsWith("image/")) {
-      setPreviewUrl(URL.createObjectURL(f));
+      setPreviewUrl(objUrl);
+    } else if (f.type === "application/pdf") {
+      // Render first page to canvas for preview
+      pdfPageToBase64(f)
+        .then((b64) => setPreviewUrl(`data:image/jpeg;base64,${b64}`))
+        .catch(() => setPreviewUrl(null));
     } else {
       setPreviewUrl(null);
     }
@@ -122,6 +130,7 @@ export default function JobCardUploader({
   const reset = () => {
     setFile(null);
     setPreviewUrl(null);
+    setDownloadUrl(null);
     setMessage(null);
     if (inputRef.current) inputRef.current.value = "";
   };
@@ -174,9 +183,21 @@ export default function JobCardUploader({
           )}
           <p className="text-white text-sm font-semibold truncate">{file.name}</p>
         </div>
-        <button type="button" onClick={reset} className="text-white/30 hover:text-white/60 shrink-0">
-          <X size={16} />
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {downloadUrl && (
+            <a
+              href={downloadUrl}
+              download={file.name}
+              className="p-1.5 rounded-lg text-white/30 hover:text-[#00C2C7] hover:bg-[#00C2C7]/10 transition-colors"
+              title="Download original file"
+            >
+              <Download size={15} />
+            </a>
+          )}
+          <button type="button" onClick={reset} className="p-1.5 rounded-lg text-white/30 hover:text-white/60 transition-colors">
+            <X size={15} />
+          </button>
+        </div>
       </div>
 
       {/* Image preview */}
