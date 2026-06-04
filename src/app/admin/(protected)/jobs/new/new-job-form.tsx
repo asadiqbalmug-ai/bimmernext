@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, Trash2, Save, Loader2, ChevronDown } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, ChevronDown, AlertTriangle } from "lucide-react";
 import JobCardUploader, { type ExtractedJobCard } from "./pdf-extractor";
 import { TechSelect } from "../tech-select";
 
 interface JobRow { id: string; job: string; technicians: string[] }
 interface StaffMember { id: string; full_name: string; role: string }
 
-const STATUS_OPTIONS = ["Open","In Progress","Waiting Parts","Ready","Completed","Cancelled"];
+const STATUS_OPTIONS = ["Draft","Open","In Progress","Waiting Parts","Ready","Completed","Cancelled"];
 const PRIORITY_OPTIONS = ["Low","Normal","High","Urgent"];
 
 const newJobRow = (): JobRow => ({ id: crypto.randomUUID(), job: "", technicians: [] });
@@ -20,6 +20,7 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uncertain, setUncertain] = useState<Set<string>>(new Set());
 
   // Job header fields
   const [date, setDate]             = useState(new Date().toLocaleDateString("en-GB").split("/").reverse().join("-"));
@@ -54,8 +55,9 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
   const updateTechs = (id: string, techs: string[]) =>
     setJobRows((p) => p.map((r) => r.id === id ? { ...r, technicians: techs } : r));
 
-  const handleExtracted = (data: ExtractedJobCard, file: File) => {
+  const handleExtracted = (data: ExtractedJobCard, file: File, uncertainFields?: string[]) => {
     setUploadedFile(file);
+    setUncertain(new Set(uncertainFields ?? []));
     if (data.date)                setDate(data.date);
     if (data.order_no)            setOrderNo(data.order_no);
     if (data.customer_name)       setCN(data.customer_name);
@@ -119,6 +121,7 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
       assigned_name: selectedStaff?.full_name || null,
       pdf_url: pdfUrl,
       pdf_filename: pdfFilename,
+      uncertain_fields: uncertain.size > 0 ? Array.from(uncertain) : [],
     }).select("id").single();
 
     setSaving(false);
@@ -149,23 +152,23 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
         <div className="p-5 space-y-5">
           {/* Row 1: Date | Make | VIN | Customer */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <F label="Date" value={date} onChange={setDate} type="date" />
-            <F label="Make" value={make} onChange={setMake} placeholder="BMW" />
-            <F label="VIN" value={vin} onChange={setVin} placeholder="L953348" />
-            <F label="Customer" value={customerName} onChange={setCN} placeholder="Rajesh *" required />
+            <F label="Date" value={date} onChange={setDate} type="date" uncertain={uncertain.has("date")} />
+            <F label="Make" value={make} onChange={setMake} placeholder="BMW" uncertain={uncertain.has("make")} />
+            <F label="VIN" value={vin} onChange={setVin} placeholder="L953348" uncertain={uncertain.has("vin")} />
+            <F label="Customer" value={customerName} onChange={setCN} placeholder="Rajesh *" required uncertain={uncertain.has("customer_name")} />
           </div>
 
           {/* Row 2: Order No | Model | Registration | Mileage */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <F label="Order No" value={orderNo} onChange={setOrderNo} placeholder="Auto-assigned" />
-            <F label="Model" value={model} onChange={setModel} placeholder="E71" />
-            <F label="Registration" value={registration} onChange={setReg} placeholder="14106-P-DXB" />
-            <F label="Mileage" value={mileage} onChange={setMileage} placeholder="57,066 km" />
+            <F label="Order No" value={orderNo} onChange={setOrderNo} placeholder="Auto-assigned" uncertain={uncertain.has("order_no")} />
+            <F label="Model" value={model} onChange={setModel} placeholder="E71" uncertain={uncertain.has("model")} />
+            <F label="Registration" value={registration} onChange={setReg} placeholder="14106-P-DXB" uncertain={uncertain.has("registration")} />
+            <F label="Mileage" value={mileage} onChange={setMileage} placeholder="57,066 km" uncertain={uncertain.has("mileage")} />
           </div>
 
           {/* Contact (not on physical card, but useful) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <F label="Customer Phone" value={customerPhone} onChange={setCP} placeholder="+971 50 000 0000" type="tel" />
+            <F label="Customer Phone" value={customerPhone} onChange={setCP} placeholder="+971 50 000 0000" type="tel" uncertain={uncertain.has("customer_phone")} />
           </div>
 
           {/* Divider */}
@@ -174,7 +177,7 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
           {/* Customer's Concerns | Additional Findings */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="label-style">Customer&apos;s Concerns</label>
+              <label className="label-style flex items-center gap-1.5">Customer&apos;s Concerns{uncertain.has("customers_concerns") && <AlertTriangle size={11} className="text-amber-400" />}</label>
               <textarea
                 value={concerns}
                 onChange={(e) => setConcerns(e.target.value)}
@@ -184,7 +187,7 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
               />
             </div>
             <div>
-              <label className="label-style">Additional Findings</label>
+              <label className="label-style flex items-center gap-1.5">Additional Findings{uncertain.has("additional_findings") && <AlertTriangle size={11} className="text-amber-400" />}</label>
               <textarea
                 value={findings}
                 onChange={(e) => setFindings(e.target.value)}
@@ -196,7 +199,7 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
           </div>
 
           {/* Suggestions */}
-          <F label="Suggestions" value={suggestions} onChange={setSuggestions} placeholder="Suggestions for customer…" />
+          <F label="Suggestions" value={suggestions} onChange={setSuggestions} placeholder="Suggestions for customer…" uncertain={uncertain.has("suggestions")} />
 
           <div className="border-t border-white/5" />
 
@@ -284,13 +287,24 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
   );
 }
 
-function F({ label, value, onChange, placeholder, type = "text", required }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; required?: boolean;
+function F({ label, value, onChange, placeholder, type = "text", required, uncertain }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; required?: boolean; uncertain?: boolean;
 }) {
   return (
     <div>
-      <label className="label-style">{label}</label>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} required={required} className="input-style w-full" />
+      <label className="label-style flex items-center gap-1.5">
+        {label}
+        {uncertain && (
+          <span title="AI wasn't confident — please verify" className="text-amber-400 flex items-center">
+            <AlertTriangle size={11} />
+          </span>
+        )}
+      </label>
+      <input
+        type={type} value={value} onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder} required={required}
+        className={`input-style w-full ${uncertain ? "border-amber-500/40" : ""}`}
+      />
     </div>
   );
 }

@@ -20,7 +20,7 @@ export interface ExtractedJobCard {
   remarks?: string;
 }
 
-async function fileToBase64(file: File): Promise<string> {
+export async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -32,7 +32,7 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
-async function pdfPageToBase64(file: File): Promise<string> {
+export async function pdfPageToBase64(file: File): Promise<string> {
   const pdfjsLib = await import("pdfjs-dist");
   pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
   const arrayBuffer = await file.arrayBuffer();
@@ -54,7 +54,7 @@ export default function JobCardUploader({
   onExtracted,
   onFileSelected,
 }: {
-  onExtracted: (data: ExtractedJobCard, file: File) => void;
+  onExtracted: (data: ExtractedJobCard, file: File, uncertainFields?: string[]) => void;
   onFileSelected?: (file: File) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -117,8 +117,9 @@ export default function JobCardUploader({
         return;
       }
 
-      onExtracted(json.data, file);
-      setMessage({ type: "success", text: "AI extracted fields — review and edit below" });
+      onExtracted(json.data, file, json.uncertainFields ?? []);
+      const uc = (json.uncertainFields ?? []).length;
+      setMessage({ type: "success", text: uc > 0 ? `Fields extracted — ${uc} field${uc > 1 ? "s" : ""} flagged ⚠️ for review` : "Fields extracted — review and confirm below" });
     } catch (err) {
       console.error(err);
       setMessage({ type: "error", text: "AI extraction failed. Fill in manually." });

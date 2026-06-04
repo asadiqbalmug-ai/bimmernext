@@ -3,18 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Save, Loader2, Trash2, Plus, ChevronDown } from "lucide-react";
+import { Save, Loader2, Trash2, Plus, ChevronDown, AlertTriangle } from "lucide-react";
 import { TechSelect } from "../tech-select";
 
 interface JobRow { id: string; job: string; technicians: string[] }
 interface StaffMember { id: string; full_name: string; role: string }
 
-const STATUS_OPTIONS = ["Open","In Progress","Waiting Parts","Ready","Completed","Cancelled"];
+const STATUS_OPTIONS = ["Draft","Open","In Progress","Waiting Parts","Ready","Completed","Cancelled"];
 const PRIORITY_OPTIONS = ["Low","Normal","High","Urgent"];
 const newJobRow = (): JobRow => ({ id: crypto.randomUUID(), job: "", technicians: [] });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function JobDetailClient({ job, staff }: { job: any; staff: StaffMember[] }) {
+  const uncertain = new Set<string>(Array.isArray(job.uncertain_fields) ? job.uncertain_fields : []);
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -119,21 +120,21 @@ export default function JobDetailClient({ job, staff }: { job: any; staff: Staff
         <div className="p-5 space-y-5">
           {/* Row 1 */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <F label="Date" value={date} onChange={setDate} type="date" />
-            <F label="Make" value={make} onChange={setMake} placeholder="BMW" />
-            <F label="VIN" value={vin} onChange={setVin} />
-            <F label="Customer" value={customerName} onChange={setCN} />
+            <F label="Date" value={date} onChange={setDate} type="date" uncertain={uncertain.has("date")} />
+            <F label="Make" value={make} onChange={setMake} placeholder="BMW" uncertain={uncertain.has("make")} />
+            <F label="VIN" value={vin} onChange={setVin} uncertain={uncertain.has("vin")} />
+            <F label="Customer" value={customerName} onChange={setCN} uncertain={uncertain.has("customer_name")} />
           </div>
           {/* Row 2 */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <F label="Order No" value={orderNo} onChange={setOrderNo} />
-            <F label="Model" value={model} onChange={setModel} placeholder="E71" />
-            <F label="Registration" value={registration} onChange={setReg} />
-            <F label="Mileage" value={mileage} onChange={setMileage} />
+            <F label="Order No" value={orderNo} onChange={setOrderNo} uncertain={uncertain.has("order_no")} />
+            <F label="Model" value={model} onChange={setModel} placeholder="E71" uncertain={uncertain.has("model")} />
+            <F label="Registration" value={registration} onChange={setReg} uncertain={uncertain.has("registration")} />
+            <F label="Mileage" value={mileage} onChange={setMileage} uncertain={uncertain.has("mileage")} />
           </div>
           {/* Phone */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <F label="Customer Phone" value={customerPhone} onChange={setCP} type="tel" />
+            <F label="Customer Phone" value={customerPhone} onChange={setCP} type="tel" uncertain={uncertain.has("customer_phone")} />
           </div>
 
           <div className="border-t border-white/5" />
@@ -141,15 +142,15 @@ export default function JobDetailClient({ job, staff }: { job: any; staff: Staff
           {/* Concerns + Findings */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="label-style">Customer&apos;s Concerns</label>
-              <textarea value={concerns} onChange={(e) => setConcerns(e.target.value)} rows={6} className="input-style w-full resize-y" />
+              <label className="label-style flex items-center gap-1.5">Customer&apos;s Concerns{uncertain.has("customers_concerns") && <AlertTriangle size={11} className="text-amber-400" />}</label>
+              <textarea value={concerns} onChange={(e) => setConcerns(e.target.value)} rows={6} className={`input-style w-full resize-y ${uncertain.has("customers_concerns") ? "border-amber-500/40" : ""}`} />
             </div>
             <div>
-              <label className="label-style">Additional Findings</label>
-              <textarea value={findings} onChange={(e) => setFindings(e.target.value)} rows={6} className="input-style w-full resize-y" />
+              <label className="label-style flex items-center gap-1.5">Additional Findings{uncertain.has("additional_findings") && <AlertTriangle size={11} className="text-amber-400" />}</label>
+              <textarea value={findings} onChange={(e) => setFindings(e.target.value)} rows={6} className={`input-style w-full resize-y ${uncertain.has("additional_findings") ? "border-amber-500/40" : ""}`} />
             </div>
           </div>
-          <F label="Suggestions" value={suggestions} onChange={setSugg} />
+          <F label="Suggestions" value={suggestions} onChange={setSugg} uncertain={uncertain.has("suggestions")} />
 
           <div className="border-t border-white/5" />
 
@@ -221,11 +222,14 @@ export default function JobDetailClient({ job, staff }: { job: any; staff: Staff
   );
 }
 
-function F({ label, value, onChange, type = "text", placeholder }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string }) {
+function F({ label, value, onChange, type = "text", placeholder, uncertain }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; uncertain?: boolean }) {
   return (
     <div>
-      <label className="label-style">{label}</label>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="input-style w-full" />
+      <label className="label-style flex items-center gap-1.5">
+        {label}
+        {uncertain && <span title="AI wasn't confident — please verify"><AlertTriangle size={11} className="text-amber-400" /></span>}
+      </label>
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={`input-style w-full ${uncertain ? "border-amber-500/40" : ""}`} />
     </div>
   );
 }

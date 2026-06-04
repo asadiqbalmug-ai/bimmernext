@@ -6,14 +6,15 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard, ClipboardList, FileText, Users, LogOut,
-  Menu, X, ChevronRight, Car,
+  Menu, X, ChevronRight, Car, Upload,
 } from "lucide-react";
 
 const NAV = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { label: "Job Cards",  href: "/admin/jobs",      icon: ClipboardList   },
-  { label: "Invoices",   href: "/admin/invoices",  icon: FileText        },
-  { label: "Staff",      href: "/admin/staff",     icon: Users           },
+  { label: "Dashboard",   href: "/admin/dashboard",     icon: LayoutDashboard },
+  { label: "Job Cards",   href: "/admin/jobs",           icon: ClipboardList   },
+  { label: "Bulk Import", href: "/admin/bulk-import",    icon: Upload          },
+  { label: "Invoices",    href: "/admin/invoices",       icon: FileText        },
+  { label: "Staff",       href: "/admin/staff",          icon: Users           },
 ];
 
 export default function AdminShell({

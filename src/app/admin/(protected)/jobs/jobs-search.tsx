@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useTransition } from "react";
 import { Search } from "lucide-react";
 
-const STATUSES = ["all", "Open", "In Progress", "Waiting Parts", "Ready", "Completed", "Cancelled"];
+const STATUSES = ["all", "Draft", "Open", "In Progress", "Waiting Parts", "Ready", "Completed", "Cancelled"];
 
 export default function JobsSearch({
   defaultQ,
