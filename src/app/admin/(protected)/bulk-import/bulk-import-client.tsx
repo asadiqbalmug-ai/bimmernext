@@ -4,7 +4,12 @@ import { useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Upload, Loader2, CheckCircle2, XCircle, AlertTriangle, FileImage, ExternalLink } from "lucide-react";
-import { fileToBase64, pdfPageToBase64 } from "../jobs/new/pdf-extractor";
+import {
+  buildStorageFilename,
+  extractJobCardFromFile,
+  getNextDuplicateIndex,
+  getStorageNameParts,
+} from "../jobs/new/pdf-extractor";
 
 interface StaffMember { id: string; full_name: string; role: string }
 
@@ -57,22 +62,16 @@ export default function BulkImportClient({ staff: _staff }: { staff: StaffMember
     try {
       const supabase = createClient();
 
-      // 1. Convert to base64
-      const isPdf = item.file.type === "application/pdf";
-      const base64 = isPdf ? await pdfPageToBase64(item.file) : await fileToBase64(item.file);
-      const mimeType = isPdf ? "image/jpeg" : item.file.type;
+      // 1. OCR the full document (all PDF pages, or a single image)
+      const { data: extracted, uncertainFields } = await extractJobCardFromFile(item.file);
 
-      // 2. OCR
-      const ocrRes = await fetch("/api/admin/ocr-job-card", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mimeType }),
-      });
-      if (!ocrRes.ok) throw new Error((await ocrRes.json()).error || "OCR failed");
-      const { data: extracted, uncertainFields } = await ocrRes.json();
-
-      // 3. Upload original file to Supabase Storage
-      const path = `bulk/${Date.now()}-${item.file.name}`;
+      // 2. Upload original file to Supabase Storage
+      const { stem, ext } = getStorageNameParts(extracted.vin, item.file.name);
+      const folderPath = `bulk/${stem}`;
+      const { data: existingFiles } = await supabase.storage.from("job-cards").list(folderPath);
+      const duplicateIndex = getNextDuplicateIndex(existingFiles?.map((entry) => entry.name) ?? [], stem, ext);
+      const fileName = buildStorageFilename(stem, ext, duplicateIndex);
+      const path = `${folderPath}/${fileName}`;
       let pdfUrl: string | null = null;
       const { data: uploaded } = await supabase.storage
         .from("job-cards")
@@ -83,7 +82,7 @@ export default function BulkImportClient({ staff: _staff }: { staff: StaffMember
           .createSignedUrl(uploaded.path, 60 * 60 * 24 * 365);
         pdfUrl = signed?.signedUrl ?? null;
       }
-      // 4. Save to DB as Draft
+      // 3. Save to DB as Draft
       const filledRows = (extracted.jobs_carried_out ?? []).filter((r: { job: string }) => r.job?.trim());
       const { data: saved, error } = await supabase
         .from("job_cards")
@@ -108,7 +107,7 @@ export default function BulkImportClient({ staff: _staff }: { staff: StaffMember
             technicians: r.technician ? [r.technician] : [],
           })),
           pdf_url: pdfUrl,
-          pdf_filename: item.file.name,
+          pdf_filename: fileName,
           uncertain_fields: Array.isArray(uncertainFields) ? uncertainFields : [],
           job_number: "",
         })

@@ -32,19 +32,194 @@ export async function fileToBase64(file: File): Promise<string> {
   });
 }
 
-export async function pdfPageToBase64(file: File): Promise<string> {
-  const pdfjsLib = await import("pdfjs-dist");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const page = await pdf.getPage(1);
+export function sanitizePathName(name: string) {
+  return name.replace(/[^a-zA-Z0-9._-]+/g, "_");
+}
+
+export function getVinStorageStem(vin: string | null | undefined) {
+  const cleaned = (vin ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!cleaned) return "";
+  return cleaned.length > 6 ? cleaned.slice(-6) : cleaned;
+}
+
+export function getStorageNameParts(vin: string | null | undefined, originalName: string) {
+  const stem = getVinStorageStem(vin);
+  const safeOriginal = sanitizePathName(originalName);
+  const extMatch = safeOriginal.match(/(\.[^.]+)$/);
+
+  return {
+    stem: stem || sanitizePathName(safeOriginal.replace(/\.[^.]+$/, "")) || "job-card",
+    ext: extMatch?.[1] || ".pdf",
+  };
+}
+
+export function buildStorageFilename(stem: string, ext: string, duplicateIndex = 0) {
+  return duplicateIndex > 0 ? `${stem} (${duplicateIndex})${ext}` : `${stem}${ext}`;
+}
+
+export function getNextDuplicateIndex(existingNames: string[], stem: string, ext: string) {
+  let highest = -1;
+  const escapedStem = stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedExt = ext.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`^${escapedStem}(?: \\((\\d+)\\))?${escapedExt}$`, "i");
+
+  for (const name of existingNames) {
+    const match = name.match(pattern);
+    if (!match) continue;
+    const index = match[1] ? Number.parseInt(match[1], 10) : 0;
+    if (Number.isFinite(index)) {
+      highest = Math.max(highest, index);
+    }
+  }
+
+  return highest + 1;
+}
+
+type OcrResult = {
+  data: ExtractedJobCard;
+  uncertainFields: string[];
+};
+
+function getPdfWorkerSrc() {
+  return new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+}
+
+function mergeExtractedJobCards(base: ExtractedJobCard, next: ExtractedJobCard): ExtractedJobCard {
+  const merged: ExtractedJobCard = { ...base };
+
+  const scalarKeys: Array<Exclude<keyof ExtractedJobCard, "jobs_carried_out">> = [
+    "date",
+    "order_no",
+    "customer_name",
+    "customer_phone",
+    "make",
+    "model",
+    "vin",
+    "registration",
+    "mileage",
+    "customers_concerns",
+    "additional_findings",
+    "suggestions",
+    "remarks",
+  ];
+
+  for (const key of scalarKeys) {
+    const incoming = next[key];
+    const current = merged[key];
+    if (typeof incoming === "string" && incoming.trim() && (!current || !String(current).trim())) {
+      merged[key] = incoming.trim();
+    }
+  }
+
+  const existingJobs = merged.jobs_carried_out ?? [];
+  const incomingJobs = next.jobs_carried_out ?? [];
+  const seen = new Set(
+    existingJobs.map((row) => `${row.job.trim().toLowerCase()}|${row.technician.trim().toLowerCase()}`)
+  );
+
+  const jobs = [...existingJobs];
+  for (const row of incomingJobs) {
+    const job = row.job?.trim() ?? "";
+    const technician = row.technician?.trim() ?? "";
+    if (!job && !technician) continue;
+
+    const key = `${job.toLowerCase()}|${technician.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    jobs.push({ job, technician });
+  }
+
+  if (jobs.length > 0) {
+    merged.jobs_carried_out = jobs;
+  }
+
+  return merged;
+}
+
+async function renderPdfPageToBase64(pdf: any, pageNumber: number): Promise<string> {
+  const page = await pdf.getPage(pageNumber);
   const viewport = page.getViewport({ scale: 2.5 });
   const canvas = document.createElement("canvas");
   canvas.width = viewport.width;
   canvas.height = viewport.height;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    throw new Error("Unable to render PDF page preview");
+  }
+
   await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-  return canvas.toDataURL("image/jpeg", 0.92).split(",")[1];
+  const result = canvas.toDataURL("image/jpeg", 0.92).split(",")[1];
+  page.cleanup?.();
+  return result;
+}
+
+async function ocrImageBase64(imageBase64: string, mimeType: string): Promise<OcrResult> {
+  const res = await fetch("/api/admin/ocr-job-card", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageBase64, mimeType }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json.error || "AI extraction failed");
+  }
+
+  return {
+    data: json.data as ExtractedJobCard,
+    uncertainFields: Array.isArray(json.uncertainFields) ? json.uncertainFields : [],
+  };
+}
+
+export async function pdfPageToBase64(file: File): Promise<string> {
+  const pdfjsLib = await import("pdfjs-dist");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = getPdfWorkerSrc();
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const firstPage = await renderPdfPageToBase64(pdf, 1);
+  pdf.cleanup?.();
+  return firstPage;
+}
+
+export async function pdfPagesToBase64(file: File): Promise<string[]> {
+  const pdfjsLib = await import("pdfjs-dist");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = getPdfWorkerSrc();
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  try {
+    const pages: string[] = [];
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      pages.push(await renderPdfPageToBase64(pdf, pageNumber));
+    }
+    return pages;
+  } finally {
+    pdf.cleanup?.();
+  }
+}
+
+export async function extractJobCardFromFile(file: File): Promise<OcrResult> {
+  if (file.type === "application/pdf") {
+    const pages = await pdfPagesToBase64(file);
+    if (!pages.length) {
+      throw new Error("No PDF pages found");
+    }
+
+    let mergedData: ExtractedJobCard = {};
+    const uncertain = new Set<string>();
+
+    for (const pageBase64 of pages) {
+      const result = await ocrImageBase64(pageBase64, "image/jpeg");
+      mergedData = mergeExtractedJobCards(mergedData, result.data);
+      result.uncertainFields.forEach((field) => uncertain.add(field));
+    }
+
+    return { data: mergedData, uncertainFields: Array.from(uncertain) };
+  }
+
+  const base64 = await fileToBase64(file);
+  return ocrImageBase64(base64, file.type || "image/jpeg");
 }
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "application/pdf"];
@@ -93,30 +268,7 @@ export default function JobCardUploader({
     setMessage({ type: "info", text: "Sending to AI — reading handwriting…" });
 
     try {
-      let base64: string;
-      let mimeType: string;
-
-      if (file.type === "application/pdf") {
-        base64 = await pdfPageToBase64(file);
-        mimeType = "image/jpeg";
-      } else {
-        base64 = await fileToBase64(file);
-        mimeType = file.type || "image/jpeg";
-      }
-
-      const res = await fetch("/api/admin/ocr-job-card", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mimeType }),
-      });
-      const json = await res.json();
-
-      if (!res.ok) {
-        setMessage({ type: "error", text: json.error || "AI extraction failed" });
-        setOcrLoading(false);
-        return;
-      }
-
+      const json = await extractJobCardFromFile(file);
       onExtracted(json.data, file, json.uncertainFields ?? []);
       const uc = (json.uncertainFields ?? []).length;
       setMessage({ type: "success", text: uc > 0 ? `Fields extracted — ${uc} field${uc > 1 ? "s" : ""} flagged ⚠️ for review` : "Fields extracted — review and confirm below" });

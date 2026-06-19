@@ -18,7 +18,14 @@ import {
   Check,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { fileToBase64, pdfPageToBase64, type ExtractedJobCard } from "../jobs/new/pdf-extractor";
+import {
+  buildStorageFilename,
+  extractJobCardFromFile,
+  getNextDuplicateIndex,
+  getStorageNameParts,
+  getVinStorageStem,
+  type ExtractedJobCard,
+} from "../jobs/new/pdf-extractor";
 
 interface StaffMember {
   id: string;
@@ -133,8 +140,9 @@ function parseMileage(value: string) {
   return cleaned ? Number.parseInt(cleaned, 10) : null;
 }
 
-function sanitizePathName(name: string) {
-  return name.replace(/[^a-zA-Z0-9._-]+/g, "_");
+function getVinGroupLabel(vin: string) {
+  const stem = getVinStorageStem(vin);
+  return stem ? `VIN group ${stem}` : "VIN group pending";
 }
 
 function findNextSelectable(items: ReviewItem[], activeId: string | null) {
@@ -288,6 +296,31 @@ export default function BulkImportReviewClient({ staff }: { staff: StaffMember[]
     return tally;
   }, [items]);
 
+  const vinGroups = useMemo(() => {
+    const pendingKey = "__pending__";
+    const buckets = new Map<string, ReviewItem[]>();
+
+    for (const item of items) {
+      const stem = getVinStorageStem(item.draft.vin);
+      const key = stem || pendingKey;
+      const currentBucket = buckets.get(key) ?? [];
+      currentBucket.push(item);
+      buckets.set(key, currentBucket);
+    }
+
+    return Array.from(buckets.entries())
+      .sort(([leftKey], [rightKey]) => {
+        if (leftKey === pendingKey && rightKey !== pendingKey) return 1;
+        if (rightKey === pendingKey && leftKey !== pendingKey) return -1;
+        return leftKey.localeCompare(rightKey);
+      })
+      .map(([key, groupedItems]) => ({
+        key,
+        label: key === pendingKey ? "VIN group pending" : `VIN group ${key}`,
+        items: groupedItems,
+      }));
+  }, [items]);
+
   const updateItem = useCallback((id: string, patch: Partial<ReviewItem>) => {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   }, []);
@@ -392,31 +425,18 @@ export default function BulkImportReviewClient({ staff }: { staff: StaffMember[]
 
   const processItem = useCallback(async (id: string) => {
     const current = items.find((item) => item.id === id);
-    if (!current || current.status !== "pending") return;
+    if (!current || current.status === "processing" || current.status === "saving") return;
 
     setProcessingId(id);
     updateItem(id, { status: "processing", error: undefined, errorStage: undefined });
 
     try {
-      const isPdf = current.file.type === "application/pdf";
-      const base64 = isPdf ? await pdfPageToBase64(current.file) : await fileToBase64(current.file);
-      const mimeType = isPdf ? "image/jpeg" : current.file.type || "image/jpeg";
-
-      const response = await fetch("/api/admin/ocr-job-card", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mimeType }),
-      });
-      const json = await response.json();
-
-      if (!response.ok) {
-        throw new Error(json.error || "OCR failed");
-      }
+      const { data, uncertainFields } = await extractJobCardFromFile(current.file);
 
       updateItem(id, {
         status: "ready",
-        draft: mapExtractedToDraft(json.data as ExtractedJobCard),
-        uncertainFields: Array.isArray(json.uncertainFields) ? json.uncertainFields : [],
+        draft: mapExtractedToDraft(data as ExtractedJobCard),
+        uncertainFields,
         error: undefined,
         errorStage: undefined,
       });
@@ -430,14 +450,6 @@ export default function BulkImportReviewClient({ staff }: { staff: StaffMember[]
       setProcessingId((currentId) => (currentId === id ? null : currentId));
     }
   }, [items, updateItem]);
-
-  useEffect(() => {
-    if (processingId) return;
-    const nextPending = items.find((item) => item.status === "pending");
-    if (nextPending) {
-      void processItem(nextPending.id);
-    }
-  }, [items, processItem, processingId]);
 
   useEffect(() => {
     if (!items.length) {
@@ -463,9 +475,12 @@ export default function BulkImportReviewClient({ staff }: { staff: StaffMember[]
     }
   }, [activeId, items]);
 
-  const retryOcr = useCallback((id: string) => {
-    updateItem(id, { status: "pending", error: undefined, errorStage: undefined });
-  }, [updateItem]);
+  const retryOcr = useCallback(
+    (id: string) => {
+      void processItem(id);
+    },
+    [processItem]
+  );
 
   const skipCurrent = useCallback(() => {
     if (!activeItem) return;
@@ -490,8 +505,12 @@ export default function BulkImportReviewClient({ staff }: { staff: StaffMember[]
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      const safeFileName = sanitizePathName(itemSnapshot.file.name);
-      const path = `bulk/${Date.now()}-${crypto.randomUUID()}-${safeFileName}`;
+      const { stem, ext } = getStorageNameParts(itemSnapshot.draft.vin, itemSnapshot.file.name);
+      const folderPath = `bulk/${stem}`;
+      const { data: existingFiles } = await supabase.storage.from("job-cards").list(folderPath);
+      const duplicateIndex = getNextDuplicateIndex(existingFiles?.map((entry) => entry.name) ?? [], stem, ext);
+      const fileName = buildStorageFilename(stem, ext, duplicateIndex);
+      const path = `${folderPath}/${fileName}`;
 
       const { data: uploaded, error: uploadError } = await supabase.storage
         .from("job-cards")
@@ -540,7 +559,7 @@ export default function BulkImportReviewClient({ staff }: { staff: StaffMember[]
             technicians: row.technician ? [row.technician] : [],
           })),
           pdf_url: pdfUrl,
-          pdf_filename: itemSnapshot.file.name,
+          pdf_filename: fileName,
           uncertain_fields: itemSnapshot.uncertainFields,
           job_number: "",
         })
@@ -627,53 +646,73 @@ export default function BulkImportReviewClient({ staff }: { staff: StaffMember[]
               {counts.error > 0 && <StatChip label="Errors" value={counts.error} tone="text-red-300" />}
             </div>
             <div className="ml-auto text-xs text-white/30">
-              AI extraction happens automatically in the background.
+              Select a document, then start or refresh AI extraction from the review panel.
             </div>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {items.map((item, index) => {
-              const isActive = item.id === activeId;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveId(item.id)}
-                  className={`min-w-[220px] flex-shrink-0 rounded-2xl border px-3 py-3 text-left transition-all ${
-                    isActive
-                      ? "border-[#00C2C7]/60 bg-[#00C2C7]/10"
-                      : "border-white/10 bg-white/5 hover:border-white/20"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5">
-                      {item.file.type === "application/pdf" ? (
-                        <FileText size={16} className="text-white/30" />
-                      ) : (
-                        <FileImage size={16} className="text-white/30" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-semibold text-white">{item.file.name}</span>
-                        <span className="text-[10px] text-white/20">#{index + 1}</span>
-                      </div>
-                      <div className="mt-2 flex items-center gap-2">
-                        <StatusBadge status={item.status} />
-                        {item.status === "saved" && item.jobId && (
-                          <Link
-                            href={`/admin/jobs/${item.jobId}`}
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#00C2C7] hover:text-white"
-                          >
-                            Open <ExternalLink size={10} />
-                          </Link>
-                        )}
-                      </div>
-                    </div>
+          <div className="space-y-3 overflow-x-auto pb-1">
+            {vinGroups.map((group) => (
+              <div key={group.key} className="rounded-2xl border border-white/5 bg-white/[0.03] p-2">
+                <div className="flex items-center justify-between px-1 pb-2">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25">{group.label}</div>
+                  <div className="text-[10px] text-white/20">
+                    {group.items.length} file{group.items.length === 1 ? "" : "s"}
                   </div>
-                </button>
-              );
-            })}
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {group.items.map((item) => {
+                    const isActive = item.id === activeId;
+                    const itemIndex = items.findIndex((current) => current.id === item.id);
+                    const vinGroupLabel = getVinGroupLabel(item.draft.vin);
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setActiveId(item.id)}
+                        className={`min-w-[220px] flex-shrink-0 rounded-2xl border px-3 py-3 text-left transition-all ${
+                          isActive
+                            ? "border-[#00C2C7]/60 bg-[#00C2C7]/10"
+                            : "border-white/10 bg-white/5 hover:border-white/20"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5">
+                            {item.file.type === "application/pdf" ? (
+                              <FileText size={16} className="text-white/30" />
+                            ) : (
+                              <FileImage size={16} className="text-white/30" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="truncate text-sm font-semibold text-white">{item.file.name}</span>
+                              <span className="text-[10px] text-white/20">#{itemIndex + 1}</span>
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-white/35">
+                              <span className="rounded-full bg-white/5 px-2 py-0.5 font-medium text-white/45">
+                                {vinGroupLabel}
+                              </span>
+                              {item.draft.vin.trim() && <span className="truncate">{item.draft.vin.trim()}</span>}
+                            </div>
+                            <div className="mt-2 flex items-center gap-2">
+                              <StatusBadge status={item.status} />
+                              {item.status === "saved" && item.jobId && (
+                                <Link
+                                  href={`/admin/jobs/${item.jobId}`}
+                                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#00C2C7] hover:text-white"
+                                >
+                                  Open <ExternalLink size={10} />
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
@@ -733,8 +772,31 @@ export default function BulkImportReviewClient({ staff }: { staff: StaffMember[]
                     <p className="truncate text-sm text-white/55">
                       {activeItem ? activeItem.file.name : "Awaiting document"}
                     </p>
+                    {activeItem && (
+                      <p className="mt-1 text-[11px] text-white/35">
+                        {getVinGroupLabel(activeItem.draft.vin)}
+                        {activeItem.draft.vin.trim() ? ` · ${activeItem.draft.vin.trim()}` : ""}
+                      </p>
+                    )}
                   </div>
-                  {activeItem && <StatusBadge status={activeItem.status} />}
+                  {activeItem && (
+                    <div className="flex flex-col items-end gap-2">
+                      <StatusBadge status={activeItem.status} />
+                      <button
+                        type="button"
+                        onClick={() => retryOcr(activeItem.id)}
+                        disabled={processingId === activeItem.id || activeItem.status === "saving"}
+                        className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 transition-colors hover:border-[#00C2C7]/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {processingId === activeItem.id || activeItem.status === "processing" ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <RefreshCw size={13} />
+                        )}
+                        {activeItem.status === "pending" ? "Start Extraction" : "Refresh AI"}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 {activeItem && activeItem.uncertainFields.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -781,13 +843,6 @@ export default function BulkImportReviewClient({ staff }: { staff: StaffMember[]
                           <p className="mt-1 text-sm text-red-200/80">{activeItem.error}</p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => retryOcr(activeItem.id)}
-                        className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/15"
-                      >
-                        <RefreshCw size={13} /> Retry AI
-                      </button>
                     </div>
                   )}
 

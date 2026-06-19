@@ -4,7 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Plus, Trash2, Save, Loader2, ChevronDown, AlertTriangle } from "lucide-react";
-import JobCardUploader, { type ExtractedJobCard } from "./pdf-extractor";
+import JobCardUploader, {
+  buildStorageFilename,
+  getNextDuplicateIndex,
+  getStorageNameParts,
+  type ExtractedJobCard,
+} from "./pdf-extractor";
 import { TechSelect } from "../tech-select";
 
 interface JobRow { id: string; job: string; technicians: string[] }
@@ -91,10 +96,14 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
     let pdfUrl: string | null = null;
     let pdfFilename: string | null = null;
     if (uploadedFile) {
-      const ext = uploadedFile.name.split(".").pop();
-      const path = `${Date.now()}.${ext}`;
+      const { stem, ext } = getStorageNameParts(vin, uploadedFile.name);
+      const folderPath = `bulk/${stem}`;
+      const { data: existingFiles } = await supabase.storage.from("job-cards").list(folderPath);
+      const duplicateIndex = getNextDuplicateIndex(existingFiles?.map((entry) => entry.name) ?? [], stem, ext);
+      pdfFilename = buildStorageFilename(stem, ext, duplicateIndex);
+      const path = `${folderPath}/${pdfFilename}`;
       const { data: up } = await supabase.storage.from("job-cards").upload(path, uploadedFile);
-      if (up) { pdfUrl = up.path; pdfFilename = uploadedFile.name; }
+      if (up) { pdfUrl = up.path; }
     }
 
     const selectedStaff = staff.find((s) => s.id === assignedTo);
