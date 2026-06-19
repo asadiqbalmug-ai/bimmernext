@@ -1,4 +1,4 @@
-import BulkImportClient from "./bulk-import-client";
+import BulkImportClient from "./bulk-import-review-client";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function BulkImportPage() {

@@ -256,3 +256,35 @@ CREATE TRIGGER set_job_number
 INSERT INTO storage.buckets (id, name, public)
   VALUES ('job-cards', 'job-cards', false)
   ON CONFLICT (id) DO NOTHING;
+
+-- RLS for private storage objects used by bulk import and job card attachments
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "job_cards_storage_select" ON storage.objects;
+CREATE POLICY "job_cards_storage_select"
+  ON storage.objects
+  FOR SELECT
+  TO authenticated
+  USING (bucket_id = 'job-cards');
+
+DROP POLICY IF EXISTS "job_cards_storage_insert" ON storage.objects;
+CREATE POLICY "job_cards_storage_insert"
+  ON storage.objects
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'job-cards');
+
+DROP POLICY IF EXISTS "job_cards_storage_update" ON storage.objects;
+CREATE POLICY "job_cards_storage_update"
+  ON storage.objects
+  FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'job-cards')
+  WITH CHECK (bucket_id = 'job-cards');
+
+DROP POLICY IF EXISTS "job_cards_storage_delete" ON storage.objects;
+CREATE POLICY "job_cards_storage_delete"
+  ON storage.objects
+  FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'job-cards');

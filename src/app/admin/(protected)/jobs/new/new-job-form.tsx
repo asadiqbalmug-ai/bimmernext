@@ -86,6 +86,7 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
     if (!customerName.trim()) { alert("Customer name is required."); return; }
     setSaving(true);
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
     let pdfUrl: string | null = null;
     let pdfFilename: string | null = null;
@@ -102,6 +103,7 @@ export default function NewJobForm({ staff }: { staff: StaffMember[] }) {
     const { data, error } = await supabase.from("job_cards").insert({
       job_number: "",
       status, priority,
+      created_by: user?.id ?? null,
       order_no: orderNo || null,
       customer_name: customerName.trim(),
       customer_phone: customerPhone.trim() || null,
